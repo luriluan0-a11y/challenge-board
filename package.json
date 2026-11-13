@@ -1,0 +1,10 @@
+{
+  "name": "challenge-board",
+  "version": "0.1.0",
+  "private": true,
+  "description": "취업 준비 챌린지보드: 매일 습관·공부 체크, 포인트·배지, 추가 미션 기록",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\""
+  }
+}
