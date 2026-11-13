@@ -72,13 +72,12 @@ function render() {
   const complete = isComplete(state, day);
   $("pct").textContent = `${pct}%`;
   $("doneText").textContent = `${c.done} / ${c.total}`;
-  $("plane").style.left = `${pct}%`;
-  $("trail").style.width = `${pct}%`;
+  renderCoins(day);
   $("todayPoints").textContent = `+${dayPoints(state, day)}`;
   const applyItem = activeItems(state, day).find((i) => i.kind === "count");
   const applied = applyItem ? (state.days[day]?.counts?.[applyItem.id] ?? 0) : 0;
   $("applyCount").textContent = `${applied}건`;
-  $("nextGoal").textContent = complete ? "오늘 목적지 도착 🛬" : `${c.total - c.done}개 남음`;
+  $("nextGoal").textContent = complete ? "오늘의 보물을 모두 찾았어요! 🏴‍☠️" : `금화 ${c.total - c.done}개 남음`;
   $("stamp").hidden = !complete;
   $("stampEmpty").hidden = complete;
   $("stampBox").classList.toggle("done", complete);
@@ -89,6 +88,20 @@ function render() {
 
   const memo = $("memo");
   if (document.activeElement !== memo) memo.value = state.days[day]?.memo ?? "";
+}
+
+/* 탁자 위 금화: 항목 하나에 금화 하나, 체크하면 금화가 뒤집혀 금색이 된다 */
+function renderCoins(day) {
+  const checks = state.days[day]?.checks ?? {};
+  const box = $("coins");
+  box.replaceChildren();
+  for (const item of activeItems(state, day)) {
+    const c = document.createElement("span");
+    c.className = checks[item.id] ? "coin on" : "coin";
+    c.textContent = item.emoji;
+    c.title = `${item.name}${checks[item.id] ? " (완료)" : ""}`;
+    box.appendChild(c);
+  }
 }
 
 function renderItems(day) {
