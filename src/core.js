@@ -55,6 +55,68 @@ export function completion(state, day) {
   return { done, total: items.length, rate: items.length ? done / items.length : 0 };
 }
 
+const emptyDay = () => ({ checks: {}, counts: {}, memo: "" });
+
+/** state를 복사하고, 그날 기록을 고칠 수 있게 꺼내 준다. */
+function editDay(state, day) {
+  const next = structuredClone(state);
+  next.days[day] = { ...emptyDay(), ...next.days[day] };
+  return [next, next.days[day]];
+}
+
+/** 매일 항목 체크를 켜고 끈다. 건수 항목은 켜면 1건, 끄면 건수도 지운다. */
+export function toggleCheck(state, day, itemId) {
+  const [next, rec] = editDay(state, day);
+  const item = next.items.find((i) => i.id === itemId);
+  if (rec.checks[itemId]) {
+    delete rec.checks[itemId];
+    delete rec.counts[itemId];
+  } else {
+    rec.checks[itemId] = true;
+    if (item?.kind === "count") rec.counts[itemId] = 1;
+  }
+  return next;
+}
+
+/** 건수 항목의 건수를 바꾼다. 1 이상이면 체크도 켜고, 0 이하면 체크를 끈다. */
+export function setCount(state, day, itemId, n) {
+  const [next, rec] = editDay(state, day);
+  const count = Math.floor(Number(n));
+  if (count >= 1) {
+    rec.checks[itemId] = true;
+    rec.counts[itemId] = count;
+  } else {
+    delete rec.checks[itemId];
+    delete rec.counts[itemId];
+  }
+  return next;
+}
+
+/** 그날의 한 줄 메모를 저장한다. */
+export function setMemo(state, day, text) {
+  const [next, rec] = editDay(state, day);
+  rec.memo = String(text);
+  return next;
+}
+
+/** 그날 받은 포인트: 체크 + 100% 보너스 + 메모 + 미션 기록(미션마다 하루 한 번). */
+export function dayPoints(state, day) {
+  const p = state.settings.points;
+  const { done, total } = completion(state, day);
+  const memo = (state.days[day]?.memo ?? "").trim() ? p.memo : 0;
+  const missions = state.missions.filter((m) => m.logs.some((l) => l.day === day)).length;
+  return done * p.check + (total > 0 && done === total ? p.allBonus : 0) + memo + missions * p.missionLog;
+}
+
+/** 지금까지 모은 포인트: 기록이 있는 모든 날의 dayPoints 합. */
+export function earnedPoints(state) {
+  const days = new Set(Object.keys(state.days));
+  for (const m of state.missions) for (const l of m.logs) days.add(l.day);
+  let sum = 0;
+  for (const d of days) sum += dayPoints(state, d);
+  return sum;
+}
+
 /** 날짜·시각을 기록용 날짜 키(YYYY-MM-DD)로 바꾼다. dayStartHour 전 시각은 전날로 센다. */
 export function dayKey(date, dayStartHour = 4) {
   const d = new Date(date.getTime());
