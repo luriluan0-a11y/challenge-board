@@ -3,68 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#9fd8ff">
+<meta name="theme-color" content="#0d4a4f">
 <title>챌린지보드</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="app">
 
-  <header class="hero">
-    <div class="clouds" aria-hidden="true"><span></span><span></span><span></span></div>
-    <div class="hero-top">
-      <span class="brand">CHALLENGE BOARD</span>
-      <div class="wallet" title="지금까지 모은 포인트"><span class="coin" aria-hidden="true">●</span><b id="earned">0</b><span>점</span></div>
+  <header class="topbar">
+    <div class="plank wallet" title="지금까지 모은 포인트">
+      <span class="coin-ic" aria-hidden="true"></span>
+      <b id="earned">0</b>
     </div>
-    <h1>오늘의 탑승권</h1>
-
-    <div class="route glass" aria-label="오늘 달성 여정">
-      <div class="end"><b>START</b><small>출발 0%</small></div>
-      <div class="track" aria-hidden="true">
-        <span class="line"></span>
-        <span class="trail" id="trail"></span>
-        <span class="plane" id="plane">✈</span>
-      </div>
-      <div class="end right"><b>GOAL</b><small>도착 100%</small></div>
-      <div class="route-meta">
-        <span id="dateTitle">오늘</span>
-        <span>새벽 4시에 다음 날</span>
-      </div>
-    </div>
+    <div class="scroll-label" id="dateTitle">오늘</div>
   </header>
+
+  <div class="title-sign">
+    <small>CHALLENGE BOARD</small>
+    <h1>보물 챌린지</h1>
+  </div>
 
   <div class="banner" id="banner" hidden></div>
 
   <main>
     <section class="tab" id="tab-today" data-tab="today">
 
-      <article class="pass" aria-label="오늘의 탑승권">
-        <div class="pass-grid">
-          <div><label>달성</label><b id="doneText">0 / 9</b></div>
-          <div><label>달성률</label><b id="pct">0%</b></div>
-          <div><label>오늘 포인트</label><b class="green" id="todayPoints">+0</b></div>
-          <div class="r"><label>지원</label><b id="applyCount">0건</b></div>
-        </div>
-        <div class="perforation" aria-hidden="true"></div>
-        <div class="pass-bottom">
-          <div class="pass-info">
-            <label>탑승객</label>
-            <b>취업 준비생</b>
-            <label>다음 목적지</label>
-            <b id="nextGoal">모든 항목 체크</b>
+      <div class="table" aria-label="오늘 모은 금화">
+        <div class="coins" id="coins"></div>
+        <div class="table-note"><b id="doneText">0 / 9</b> 금화 획득</div>
+      </div>
+
+      <div class="console">
+        <div class="crest" aria-hidden="true">⚓</div>
+        <div class="console-row">
+          <div class="parch"><label>오늘 포인트</label><b id="todayPoints">+0</b></div>
+          <div class="wheel" id="stampBox" aria-live="polite">
+            <span class="spoke s1"></span><span class="spoke s2"></span><span class="spoke s3"></span><span class="spoke s4"></span>
+            <div class="wheel-core">
+              <span class="stamp-empty" id="stampEmpty"><b id="pct">0%</b></span>
+              <span class="stamp" id="stamp" hidden>🏆</span>
+            </div>
           </div>
-          <div class="stamp-box" id="stampBox" aria-live="polite">
-            <span class="stamp-empty" id="stampEmpty">100%면<br>도장</span>
-            <span class="stamp" id="stamp" hidden>🐾</span>
-          </div>
+          <div class="parch"><label>지원</label><b id="applyCount">0건</b></div>
         </div>
-      </article>
+        <div class="console-note" id="nextGoal">모든 항목 체크</div>
+      </div>
 
       <h2 class="section-title">매일 항목 <span id="itemCount"></span></h2>
       <ul class="items" id="items"></ul>
 
-      <h2 class="section-title">한 줄 메모 <span class="hint">+5점</span></h2>
+      <h2 class="section-title">한 줄 메모 <span class="hint">+5</span></h2>
       <div class="memo-card">
         <label class="sr-only" for="memo">오늘의 한 줄 메모</label>
         <input id="memo" class="memo" type="text" maxlength="200" placeholder="오늘 한 일, 느낀 점을 한 줄로" autocomplete="off">
@@ -73,44 +65,33 @@
     </section>
 
     <section class="tab" id="tab-missions" data-tab="missions" hidden>
-      <div class="soon"><div class="soon-emo">🎯</div><h2>미션</h2><p>4번째로 만들 기능이에요. 미션별 날짜 기록(내용 + 링크)과 보관함이 들어갈 자리예요.</p></div>
+      <div class="soon"><div class="soon-emo">🗺️</div><h2>미션</h2><p>미션 인증과 갤러리가 들어갈 자리예요.</p></div>
     </section>
     <section class="tab" id="tab-rewards" data-tab="rewards" hidden>
-      <div class="soon"><div class="soon-emo">☕</div><h2>보상</h2><p>3번째로 만들 기능이에요. 모은 포인트로 라떼 한 잔, 게임 1시간, 디저트를 "구매"할 수 있어요.</p></div>
+      <div class="soon"><div class="soon-emo">💎</div><h2>보석</h2><p>포인트로 보석을 뽑는 보석 챌린지가 들어갈 자리예요.</p></div>
     </section>
     <section class="tab" id="tab-history" data-tab="history" hidden>
-      <div class="soon"><div class="soon-emo">🐾</div><h2>기록</h2><p>2번째로 만들 기능이에요. 달력 도장, 연속 일수, 배지, 지난 메모가 들어갈 자리예요.</p></div>
+      <div class="soon"><div class="soon-emo">🏴‍☠️</div><h2>순위</h2><p>컴플리트와 보석 점수로 매기는 반 순위가 들어갈 자리예요.</p></div>
     </section>
     <section class="tab" id="tab-settings" data-tab="settings" hidden>
-      <div class="soon"><div class="soon-emo">⚙️</div><h2>설정</h2><p>5번째로 만들 기능이에요. 그때까지는 같은 브라우저(같은 기기)에서만 기록해 주세요. 백업 기능도 이때 생겨요.</p></div>
+      <div class="soon"><div class="soon-emo">⚙️</div><h2>설정</h2><p>로그인과 내 정보가 들어갈 자리예요.</p></div>
     </section>
   </main>
 
   <nav class="tabs" aria-label="화면 이동">
-    <button type="button" data-go="today" aria-current="page">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>오늘</span>
-    </button>
-    <button type="button" data-go="missions">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke-width="2"/><circle cx="12" cy="12" r="4.5" fill="none" stroke-width="2"/><circle cx="12" cy="12" r="1.6"/></svg><span>미션</span>
-    </button>
-    <button type="button" data-go="rewards">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4z"/></svg><span>보상</span>
-    </button>
-    <button type="button" data-go="history">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5" fill="none" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke-width="2" stroke-linecap="round"/></svg><span>기록</span>
-    </button>
-    <button type="button" data-go="settings">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke-width="2" stroke-linecap="round"/><circle cx="9" cy="6" r="2.4"/><circle cx="15" cy="12" r="2.4"/><circle cx="7" cy="18" r="2.4"/></svg><span>설정</span>
-    </button>
-    <span class="tab-indicator" id="tabIndicator" aria-hidden="true"></span>
+    <button type="button" data-go="today" aria-current="page"><span class="ti">🪙</span><span>오늘</span></button>
+    <button type="button" data-go="missions"><span class="ti">🗺️</span><span>미션</span></button>
+    <button type="button" data-go="rewards"><span class="ti">💎</span><span>보석</span></button>
+    <button type="button" data-go="history"><span class="ti">🏴‍☠️</span><span>순위</span></button>
+    <button type="button" data-go="settings"><span class="ti">⚙️</span><span>설정</span></button>
   </nav>
 </div>
 
 <div class="celebrate" id="celebrate" hidden aria-live="polite">
   <div class="celebrate-box">
-    <div class="big">🐾</div>
-    <b>오늘의 목적지에 도착했어요!</b>
-    <span>보너스 +<span id="bonusPts">30</span>점</span>
+    <div class="big">🏆</div>
+    <b>오늘의 보물을 모두 찾았어요!</b>
+    <span>보너스 +<span id="bonusPts">30</span></span>
   </div>
 </div>
 
