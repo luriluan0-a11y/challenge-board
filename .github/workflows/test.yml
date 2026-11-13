@@ -1,0 +1,24 @@
+name: 테스트
+
+# 배포는 Vercel이 한다 (vercel.json: 테스트를 통과해야 배포).
+# 여기서는 올릴 때마다 테스트만 돌려서 GitHub에도 결과(✓/✗)를 남긴다.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: 테스트
+        run: npm test

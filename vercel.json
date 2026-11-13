@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm test && rm -rf dist && mkdir dist && cp -r index.html styles.css src dist/",
+  "outputDirectory": "dist",
+  "installCommand": "echo \"설치할 패키지 없음\""
+}

@@ -9,7 +9,7 @@ tags: [취업준비]
 
 취업 준비를 돕는 개인 챌린지보드. 매일 습관과 공부를 체크해 달성률과 포인트를 쌓고, 추가 미션을 날짜별로 기록한다.
 
-- 주소: https://luriluan0-a11y.github.io/challenge-board/
+- 주소: https://challenge-board-seven.vercel.app/ (Vercel, 테스트를 통과해야 배포)
 - 설계: [docs/spec.md](docs/spec.md)
 - 기록은 각자의 브라우저(localStorage)에만 저장된다. 나중에 구글 로그인 + Firebase로 옮길 예정.
 
@@ -17,7 +17,7 @@ tags: [취업준비]
 
 - HTML·CSS·JavaScript (빌드 없음)
 - **TDD**: 계산 부분(`src/core.js`, `src/storage.js`)은 테스트(`tests/`)를 먼저 쓰고, 실패를 확인한 뒤 통과하는 코드를 썼다. 커밋 기록에 `test:`(실패하는 테스트) → `feat:`(통과하는 코드) 순서가 남아 있다.
-- **자동 검사와 배포**: GitHub Actions가 올릴 때마다 테스트를 돌리고, 모두 통과해야만 GitHub Pages에 배포한다 (`.github/workflows/deploy.yml`).
+- **자동 검사와 배포**: Vercel이 배포 전에 `npm test`를 돌리고, 모두 통과해야만 배포한다 (`vercel.json`). GitHub Actions도 올릴 때마다 테스트를 돌린다 (`.github/workflows/test.yml`).
 
 ```bash
 npm test        # node --test (설치할 것 없음, Node 24)
