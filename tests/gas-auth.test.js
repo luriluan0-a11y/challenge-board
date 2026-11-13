@@ -8,7 +8,10 @@ import vm from "node:vm";
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(readFileSync(new URL("../gas/Auth.js", import.meta.url), "utf8"), ctx);
-const { normalizeEmail, normalizeName, findStudent, checkTokenClaims, decideLogin, sessionExpiry, isSessionValid } = ctx;
+const { normalizeEmail, normalizeName, findStudent, checkTokenClaims, sessionExpiry, isSessionValid } = ctx;
+// vm 안에서 만든 객체는 종류(prototype)가 달라서, 비교 전에 일반 객체로 바꾼다.
+const plain = (o) => JSON.parse(JSON.stringify(o));
+const decideLogin = (...a) => plain(ctx.decideLogin(...a));
 
 const ROSTER = [
   ["Kim.Student@gmail.com", "김학생", ""],
