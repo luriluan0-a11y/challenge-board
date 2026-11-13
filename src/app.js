@@ -1,6 +1,8 @@
 // 화면 연결. 계산은 core.js, 저장은 storage.js에 맡기고 여기서는 그리기와 클릭 처리만 한다.
 import { dayKey, activeItems, completion, toggleCheck, setCount, setMemo, dayPoints, earnedPoints } from "./core.js";
 import { loadState, saveState, STORAGE_KEY } from "./storage.js";
+import { callApi, loadSession, saveSession, clearSession, loginStep } from "./auth.js";
+import { API_URL, GOOGLE_CLIENT_ID } from "./config.js";
 
 const $ = (id) => document.getElementById(id);
 const WEEKDAYS = "일월화수목금토";
@@ -191,4 +193,99 @@ setInterval(checkDayChange, 60 * 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkDayChange(); });
 
 render();
-moveIndicator();
+
+/* ───────── 로그인 ───────── */
+// 확인 중 → (세션이 살아 있으면) 보드 / (아니면) 구글 로그인 → 처음이면 이름 입력 → 보드
+const api = (body) => callApi((...a) => fetch(...a), API_URL, body);
+let pendingIdToken = null; // 이름을 물을 때 다시 보낼 구글 토큰 (약 1시간 유효)
+
+function showPane(name, message = "") {
+  $("paneLoading").hidden = name !== "loading";
+  $("paneLogin").hidden = name !== "login";
+  $("paneName").hidden = name !== "name";
+  if (name === "login") { $("loginMsg").textContent = message; renderGoogleButton(); }
+  if (name === "name") {
+    if (message) $("nameLead").textContent = message;
+    $("nameMsg").textContent = "";
+    $("nameInput").focus();
+  }
+}
+
+function enterBoard(student, semester) {
+  $("meName").textContent = student?.name ?? "";
+  $("meEmail").textContent = student?.email ?? "";
+  $("meSemester").textContent = semester ? `${semester} 학기` : "";
+  document.body.classList.remove("locked");
+  render();
+  moveIndicator();
+}
+
+function apply(step, { fromName = false } = {}) {
+  if (step.screen === "board") {
+    if (step.session) saveSession(storage, step.session);
+    pendingIdToken = null;
+    enterBoard(step.student, step.semester);
+  } else if (step.screen === "name") {
+    if (fromName) $("nameMsg").textContent = step.message;
+    else showPane("name", step.message);
+  } else {
+    pendingIdToken = null;
+    showPane("login", step.message);
+  }
+}
+
+async function onGoogleCredential({ credential }) {
+  pendingIdToken = credential;
+  showPane("loading");
+  apply(loginStep(await api({ action: "login", idToken: credential })));
+}
+
+$("paneName").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("nameInput").value.trim();
+  if (!name || !pendingIdToken) return;
+  const btn = $("nameSubmit");
+  btn.disabled = true;
+  try {
+    apply(loginStep(await api({ action: "login", idToken: pendingIdToken, name })), { fromName: true });
+  } finally { btn.disabled = false; }
+});
+$("nameBack").addEventListener("click", () => { pendingIdToken = null; showPane("login"); });
+
+$("logoutBtn").addEventListener("click", async () => {
+  const session = loadSession(storage);
+  clearSession(storage);
+  try { window.google?.accounts.id.disableAutoSelect(); } catch { /* 없어도 된다 */ }
+  document.body.classList.add("locked");
+  showPane("login", "로그아웃했어요.");
+  if (session) api({ action: "logout", session });
+});
+
+/* 구글 로그인 버튼: 라이브러리가 늦게 오면 올 때까지 기다린다 */
+let googleReady = false;
+function renderGoogleButton() {
+  const box = $("googleBtn");
+  if (!window.google?.accounts?.id) {
+    box.textContent = "구글 로그인 버튼을 불러오는 중…";
+    clearTimeout(renderGoogleButton.timer);
+    renderGoogleButton.timer = setTimeout(renderGoogleButton, 300);
+    return;
+  }
+  if (!googleReady) {
+    window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential, ux_mode: "popup" });
+    googleReady = true;
+  }
+  box.textContent = "";
+  window.google.accounts.id.renderButton(box, { theme: "filled_black", size: "large", shape: "pill", text: "signin_with", locale: "ko", width: 260 });
+}
+
+async function start() {
+  const session = loadSession(storage);
+  if (!session) { showPane("login"); return; }
+  showPane("loading");
+  const res = await api({ action: "me", session });
+  if (res.ok) { enterBoard(res.student, res.semester); return; }
+  if (res.code === "SESSION_EXPIRED") clearSession(storage);
+  showPane("login", res.code === "SESSION_EXPIRED" ? "" : res.message);
+}
+start();

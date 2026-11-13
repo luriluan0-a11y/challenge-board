@@ -10,8 +10,36 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="https://accounts.google.com/gsi/client" async></script>
 </head>
-<body>
+<body class="locked">
+
+<!-- 로그인: 확인 중 → 구글 로그인 → (처음이면) 이름 입력 → 보드 -->
+<div class="auth" id="auth">
+  <div class="title-sign">
+    <small>CHALLENGE BOARD</small>
+    <h1>보물 챌린지</h1>
+  </div>
+  <div class="auth-card">
+    <div class="auth-pane" id="paneLoading">
+      <p class="auth-lead">로그인 확인 중…</p>
+    </div>
+    <div class="auth-pane" id="paneLogin" hidden>
+      <p class="auth-lead">선생님께 알려 드린 구글 계정으로 로그인해 주세요.</p>
+      <div class="gbtn" id="googleBtn"></div>
+      <p class="auth-msg" id="loginMsg" role="alert"></p>
+    </div>
+    <form class="auth-pane" id="paneName" hidden>
+      <p class="auth-lead" id="nameLead">처음 로그인이에요. 선생님께 알려 드린 이름을 입력해 주세요.</p>
+      <label class="sr-only" for="nameInput">이름</label>
+      <input id="nameInput" class="memo" type="text" maxlength="40" placeholder="예: 홍길동" autocomplete="name" required>
+      <button type="submit" class="gold-btn" id="nameSubmit">확인</button>
+      <p class="auth-msg" id="nameMsg" role="alert"></p>
+      <button type="button" class="link-btn" id="nameBack">다른 계정으로 로그인</button>
+    </form>
+  </div>
+</div>
+
 <div class="app">
 
   <header class="topbar">
@@ -31,6 +59,7 @@
 
   <main>
     <section class="tab" id="tab-today" data-tab="today">
+     <div class="col-left">
 
       <div class="table" aria-label="오늘 모은 금화">
         <div class="coins" id="coins"></div>
@@ -52,7 +81,9 @@
         </div>
         <div class="console-note" id="nextGoal">모든 항목 체크</div>
       </div>
+     </div>
 
+     <div class="col-right">
       <h2 class="section-title">매일 항목 <span id="itemCount"></span></h2>
       <ul class="items" id="items"></ul>
 
@@ -62,6 +93,7 @@
         <input id="memo" class="memo" type="text" maxlength="200" placeholder="오늘 한 일, 느낀 점을 한 줄로" autocomplete="off">
         <div class="memo-state" id="memoState"></div>
       </div>
+     </div>
     </section>
 
     <section class="tab" id="tab-missions" data-tab="missions" hidden>
@@ -74,7 +106,12 @@
       <div class="soon"><div class="soon-emo">🏴‍☠️</div><h2>순위</h2><p>컴플리트와 보석 점수로 매기는 반 순위가 들어갈 자리예요.</p></div>
     </section>
     <section class="tab" id="tab-settings" data-tab="settings" hidden>
-      <div class="soon"><div class="soon-emo">⚙️</div><h2>설정</h2><p>로그인과 내 정보가 들어갈 자리예요.</p></div>
+      <div class="soon">
+        <div class="soon-emo">⚙️</div><h2>내 정보</h2>
+        <p><b id="meName"></b><br><span id="meEmail"></span></p>
+        <p class="me-sem" id="meSemester"></p>
+        <button type="button" class="gold-btn" id="logoutBtn">로그아웃</button>
+      </div>
     </section>
   </main>
 
