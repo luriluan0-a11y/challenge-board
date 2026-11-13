@@ -65,18 +65,24 @@ function render() {
   const day = today();
   const [y, m, d] = day.split("-").map(Number);
   const weekday = WEEKDAYS[new Date(y, m - 1, d).getDay()];
-  $("dateTitle").textContent = `${m}월 ${d}일 (${weekday})`;
+  $("dateTitle").textContent = `${y}.${String(m).padStart(2, "0")}.${String(d).padStart(2, "0")} (${weekday})`;
 
   const c = completion(state, day);
   const pct = Math.round(c.rate * 100);
+  const complete = isComplete(state, day);
   $("pct").textContent = `${pct}%`;
-  $("doneText").textContent = `${c.total}개 중 ${c.done}개`;
-  const ring = $("ringFg");
-  const len = 2 * Math.PI * 52;
-  ring.style.strokeDasharray = `${len}`;
-  ring.style.strokeDashoffset = `${len * (1 - c.rate)}`;
-  $("todayPoints").textContent = `${dayPoints(state, day)}점`;
-  $("stamp").hidden = !isComplete(state, day);
+  $("doneText").textContent = `${c.done} / ${c.total}`;
+  $("plane").style.left = `${pct}%`;
+  $("trail").style.width = `${pct}%`;
+  $("todayPoints").textContent = `+${dayPoints(state, day)}`;
+  const applyItem = activeItems(state, day).find((i) => i.kind === "count");
+  const applied = applyItem ? (state.days[day]?.counts?.[applyItem.id] ?? 0) : 0;
+  $("applyCount").textContent = `${applied}건`;
+  $("nextGoal").textContent = complete ? "오늘 목적지 도착 🛬" : `${c.total - c.done}개 남음`;
+  $("stamp").hidden = !complete;
+  $("stampEmpty").hidden = complete;
+  $("stampBox").classList.toggle("done", complete);
+  $("itemCount").textContent = `${c.total}개`;
   $("earned").textContent = earnedPoints(state).toLocaleString("ko-KR");
 
   renderItems(day);
@@ -98,9 +104,11 @@ function renderItems(day) {
     btn.type = "button";
     btn.className = "check";
     btn.setAttribute("aria-pressed", String(on));
-    btn.innerHTML = '<span class="emo"></span><span class="name"></span><span class="box" aria-hidden="true"></span>';
+    btn.innerHTML = '<span class="emo"></span><span class="txt"><span class="name"></span><span class="meta"></span></span><span class="pts"></span><span class="box" aria-hidden="true"></span>';
     btn.querySelector(".emo").textContent = item.emoji;
     btn.querySelector(".name").textContent = item.name;
+    btn.querySelector(".meta").textContent = on ? "완료" : (item.kind === "count" ? "체크하면 건수를 적어요" : "체크하기");
+    btn.querySelector(".pts").textContent = `+${state.settings.points.check}`;
     btn.querySelector(".box").textContent = on ? "✓" : "";
     btn.addEventListener("click", () => commit(toggleCheck(state, today(), item.id)));
     li.appendChild(btn);
@@ -145,9 +153,21 @@ function go(name) {
     if (b.dataset.go === name) b.setAttribute("aria-current", "page");
     else b.removeAttribute("aria-current");
   });
+  moveIndicator();
   window.scrollTo(0, 0);
 }
 document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => go(b.dataset.go)));
+
+/* 현재 탭 아래 파란 막대 */
+function moveIndicator() {
+  const active = document.querySelector('.tabs button[aria-current="page"]');
+  const bar = $("tabIndicator");
+  if (!active || !bar) return;
+  const nav = active.parentElement.getBoundingClientRect();
+  const r = active.getBoundingClientRect();
+  bar.style.left = `${r.left - nav.left + r.width / 2 - bar.offsetWidth / 2}px`;
+}
+window.addEventListener("resize", moveIndicator);
 
 /* 날짜가 바뀌면(새벽 4시) 다시 그린다 */
 let shownDay = today();
@@ -158,3 +178,4 @@ setInterval(checkDayChange, 60 * 1000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) checkDayChange(); });
 
 render();
+moveIndicator();
