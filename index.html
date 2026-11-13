@@ -6,12 +6,37 @@
 <meta name="theme-color" content="#0d4a4f">
 <title>챌린지보드</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script src="https://accounts.google.com/gsi/client" async></script>
 </head>
-<body>
+<body class="locked">
+
+<!-- 로그인: 확인 중 → 구글 로그인 → (처음이면) 이름 입력 → 보드 -->
+<div class="auth" id="auth">
+  <div class="title-sign">
+    <small>CHALLENGE BOARD</small>
+    <h1>보물 챌린지</h1>
+  </div>
+  <div class="auth-card">
+    <div class="auth-pane" id="paneLoading">
+      <p class="auth-lead">로그인 확인 중…</p>
+    </div>
+    <div class="auth-pane" id="paneLogin" hidden>
+      <p class="auth-lead">선생님께 알려 드린 구글 계정으로 로그인해 주세요.</p>
+      <div class="gbtn" id="googleBtn"></div>
+      <p class="auth-msg" id="loginMsg" role="alert"></p>
+    </div>
+    <form class="auth-pane" id="paneName" hidden>
+      <p class="auth-lead" id="nameLead">처음 로그인이에요. 선생님께 알려 드린 이름을 입력해 주세요.</p>
+      <label class="sr-only" for="nameInput">이름</label>
+      <input id="nameInput" class="memo" type="text" maxlength="40" placeholder="예: 홍길동" autocomplete="name" required>
+      <button type="submit" class="gold-btn" id="nameSubmit">확인</button>
+      <p class="auth-msg" id="nameMsg" role="alert"></p>
+      <button type="button" class="link-btn" id="nameBack">다른 계정으로 로그인</button>
+    </form>
+  </div>
+</div>
+
 <div class="app">
 
   <header class="topbar">
@@ -31,6 +56,7 @@
 
   <main>
     <section class="tab" id="tab-today" data-tab="today">
+     <div class="col-left">
 
       <div class="table" aria-label="오늘 모은 금화">
         <div class="coins" id="coins"></div>
@@ -52,7 +78,9 @@
         </div>
         <div class="console-note" id="nextGoal">모든 항목 체크</div>
       </div>
+     </div>
 
+     <div class="col-right">
       <h2 class="section-title">매일 항목 <span id="itemCount"></span></h2>
       <ul class="items" id="items"></ul>
 
@@ -62,19 +90,55 @@
         <input id="memo" class="memo" type="text" maxlength="200" placeholder="오늘 한 일, 느낀 점을 한 줄로" autocomplete="off">
         <div class="memo-state" id="memoState"></div>
       </div>
+     </div>
     </section>
 
     <section class="tab" id="tab-missions" data-tab="missions" hidden>
-      <div class="soon"><div class="soon-emo">🗺️</div><h2>미션</h2><p>미션 인증과 갤러리가 들어갈 자리예요.</p></div>
+      <div class="points-bar">
+        <span class="coin-ic" aria-hidden="true"></span>
+        <div><label>내 미션 포인트</label><b id="mPoints">–</b></div>
+        <small>미션 하나 인증하면 <b id="mEach">+20</b></small>
+      </div>
+      <p class="tab-msg" id="missionMsg" role="alert"></p>
+
+      <h2 class="section-title">미션 <span id="mCount"></span></h2>
+      <ul class="missions" id="missions"><li class="loading-card">미션을 불러오는 중…</li></ul>
+
+      <h2 class="section-title">인증 갤러리 <span>같은 반 모두가 봐요</span></h2>
+      <div class="gallery" id="gallery"></div>
     </section>
+
     <section class="tab" id="tab-rewards" data-tab="rewards" hidden>
-      <div class="soon"><div class="soon-emo">💎</div><h2>보석</h2><p>포인트로 보석을 뽑는 보석 챌린지가 들어갈 자리예요.</p></div>
+      <div class="gem-layout">
+        <div class="console gem-stage">
+          <div class="crest" aria-hidden="true">💎</div>
+          <div class="points-line">내 포인트 <b id="gPoints">–</b></div>
+          <div class="reveal" id="gemReveal" aria-live="polite">
+            <span class="reveal-emo" id="revealEmo">🎁</span>
+            <span class="reveal-txt" id="revealTxt">포인트로 보석을 뽑아 보세요</span>
+          </div>
+          <button type="button" class="gold-btn draw-btn" id="drawBtn" disabled>불러오는 중…</button>
+          <p class="tab-msg" id="gemMsg" role="alert"></p>
+        </div>
+
+        <div>
+          <h2 class="section-title">내 보석함 <span id="gemScore"></span></h2>
+          <div class="complete-badge" id="completeBadge" hidden>🏆 컴플리트! 5종류를 모두 모았어요</div>
+          <ul class="gem-shelf" id="gemShelf"></ul>
+          <p class="odds-note">점수: 투명 1 · 흰색 2 · 핑크 3 · 골드 4 · 검은색 5. 순위는 컴플리트 먼저, 그다음 점수 합계로 정해요.</p>
+        </div>
+      </div>
     </section>
     <section class="tab" id="tab-history" data-tab="history" hidden>
       <div class="soon"><div class="soon-emo">🏴‍☠️</div><h2>순위</h2><p>컴플리트와 보석 점수로 매기는 반 순위가 들어갈 자리예요.</p></div>
     </section>
     <section class="tab" id="tab-settings" data-tab="settings" hidden>
-      <div class="soon"><div class="soon-emo">⚙️</div><h2>설정</h2><p>로그인과 내 정보가 들어갈 자리예요.</p></div>
+      <div class="soon">
+        <div class="soon-emo">⚙️</div><h2>내 정보</h2>
+        <p><b id="meName"></b><br><span id="meEmail"></span></p>
+        <p class="me-sem" id="meSemester"></p>
+        <button type="button" class="gold-btn" id="logoutBtn">로그아웃</button>
+      </div>
     </section>
   </main>
 
