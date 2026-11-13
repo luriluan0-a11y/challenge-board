@@ -4,9 +4,10 @@
  * 붙여 넣는 곳: 구글 시트 → 확장 프로그램 → Apps Script
  *   - 이 파일 → "Code.gs"
  *   - gas/Auth.js → 새 스크립트 파일 "Auth.gs"
+ *   - gas/Game.js → 새 스크립트 파일 "Game.gs"
  * 처음 한 번: 시트 메뉴 "챌린지보드 → 처음 설정" (또는 편집기에서 setupSheets 실행)
  *
- * 계산(명단 대조, 토큰 확인, 세션 만료)은 Auth.gs에 있고 Node 테스트로 검사한다.
+ * 계산은 Auth.gs(명단 대조, 토큰 확인, 세션 만료)와 Game.gs(미션 확인, 보석 확률, 포인트)에 있고 Node 테스트로 검사한다.
  * 이 파일은 시트 읽기·쓰기와 요청 처리만 한다.
  */
 
@@ -67,6 +68,16 @@ const MESSAGES = {
   SESSION_EXPIRED: "로그인 시간이 끝났어요. 다시 로그인해 주세요.",
   BAD_REQUEST: "요청을 이해하지 못했어요.",
   SERVER_ERROR: "서버에서 문제가 생겼어요. 잠시 뒤 다시 시도해 주세요.",
+  NO_MISSION: "없거나 꺼 둔 미션이에요. 화면을 새로 고쳐 주세요.",
+  ALREADY_DONE: "이미 인증한 미션이에요.",
+  EMPTY_PROOF: "인증 내용을 넣어 주세요.",
+  BAD_LINK: "링크는 https://로 시작하는 주소를 넣어 주세요.",
+  BAD_PHOTO: "사진 파일(JPG·PNG)을 골라 주세요.",
+  TOO_LONG: "글은 1000자까지 쓸 수 있어요.",
+  TOO_LARGE: "사진이 너무 커요. 다른 사진을 골라 주세요.",
+  NOT_FOUND: "인증 사진을 찾지 못했어요.",
+  NOT_ENOUGH_POINTS: "포인트가 모자라요. 미션을 인증해서 포인트를 모아 주세요.",
+  GEMS_NOT_READY: "선생님이 보석 확률을 정하는 중이에요. (설정의 확률 합이 100이 아니에요)",
 };
 
 /* ───────── 시트 메뉴와 처음 설정 ───────── */
@@ -124,6 +135,12 @@ function doPost(e) {
       case "login": return json_(login_(req));
       case "me": return json_(me_(req));
       case "logout": return json_(logout_(req));
+      case "missions": return json_(withStudent_(req, missions_));
+      case "submitProof": return json_(withStudent_(req, submitProof_));
+      case "gallery": return json_(withStudent_(req, gallery_));
+      case "proofImage": return json_(withStudent_(req, proofImage_));
+      case "gems": return json_(withStudent_(req, gems_));
+      case "draw": return json_(withStudent_(req, draw_));
       default: return fail_("BAD_REQUEST");
     }
   } catch (err) {
@@ -204,7 +221,171 @@ function studentFromSession_(token) {
   return null;
 }
 
+/* ───────── 미션 ───────── */
+
+const PROOF_FOLDER_KEY = "PROOF_FOLDER_ID";
+
+/** 세션을 확인한 뒤에만 handler(req, student, settings)를 부른다. */
+function withStudent_(req, handler) {
+  const student = studentFromSession_(req.session);
+  if (!student) return failObj_("SESSION_EXPIRED");
+  return handler(req, student, readSettings_());
+}
+
+function semesterOf_(settings) {
+  return String(settings["학기"] || "");
+}
+
+/** 이번 학기 미션인증 줄: [학기, 이메일, 미션ID, 종류, 내용, 파일ID, 시각] */
+function proofRows_(semester) {
+  return dataRows_(SHEETS.proofs.name).filter((r) => String(r[0]) === semester);
+}
+
+/** 이번 학기 보석뽑기 줄: [학기, 이메일, 보석, 점수, 사용포인트, 시각] */
+function drawRows_(semester) {
+  return dataRows_(SHEETS.draws.name).filter((r) => String(r[0]) === semester);
+}
+
+/** 내 포인트 (미션 인증 − 뽑기). 매일 체크는 아직 각자 브라우저에 있어 포함하지 않는다. */
+function myPoints_(email, settings) {
+  const sem = semesterOf_(settings);
+  const proofs = proofRows_(sem).filter((r) => normalizeEmail(r[1]) === email).length;
+  const spent = drawRows_(sem).filter((r) => normalizeEmail(r[1]) === email).map((r) => r[4]);
+  return pointBalance(proofs, settings["미션 인증 포인트"], spent);
+}
+
+function missions_(req, student, settings) {
+  const done = {};
+  proofRows_(semesterOf_(settings)).forEach((r) => {
+    if (normalizeEmail(r[1]) === student.email) done[String(r[2])] = true;
+  });
+  const list = activeMissions(dataRows_(SHEETS.missions.name)).map((m) => Object.assign({}, m, { done: Boolean(done[m.id]) }));
+  return { ok: true, missions: list, points: myPoints_(student.email, settings), missionPoints: Number(settings["미션 인증 포인트"]) || 0 };
+}
+
+function submitProof_(req, student, settings) {
+  const mission = activeMissions(dataRows_(SHEETS.missions.name)).find((m) => m.id === String(req.missionId || ""));
+  if (!mission) return failObj_("NO_MISSION");
+  const problem = checkProof(mission.method, req.content);
+  if (problem) return failObj_(problem);
+  const content = String(req.content).trim();
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sem = semesterOf_(settings);
+    const already = proofRows_(sem).some((r) => normalizeEmail(r[1]) === student.email && String(r[2]) === mission.id);
+    if (already) return failObj_("ALREADY_DONE");
+
+    let text = content;
+    let fileId = "";
+    if (mission.method === "사진") {
+      const m = content.match(/^data:(image\/(jpeg|png));base64,(.+)$/);
+      const name = `${sem}_${mission.id}_${Utilities.getUuid().slice(0, 8)}.${m[2] === "png" ? "png" : "jpg"}`;
+      fileId = proofFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(m[3]), m[1], name)).getId();
+      text = "";
+    }
+    sheet_(SHEETS.proofs.name).appendRow([sem, student.email, mission.id, mission.method, text, fileId, new Date()]);
+    return { ok: true, points: myPoints_(student.email, settings) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 인증 사진을 모아 두는 선생님 드라이브 폴더. 없으면 만든다 (공유하지 않는다). */
+function proofFolder_() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty(PROOF_FOLDER_KEY);
+  if (id) {
+    try { return DriveApp.getFolderById(id); } catch (e) { /* 지워졌으면 새로 만든다 */ }
+  }
+  const folder = DriveApp.createFolder("챌린지보드 인증사진");
+  props.setProperty(PROOF_FOLDER_KEY, folder.getId());
+  return folder;
+}
+
+/** 같은 반 인증 모음 (최신 60개). 이메일은 내보내지 않는다. */
+function gallery_(req, student, settings) {
+  const names = {};
+  rosterRows_(sheet_(SHEETS.roster.name)).forEach((r) => { names[normalizeEmail(r[0])] = String(r[1] || "").trim(); });
+  const missionNames = {};
+  dataRows_(SHEETS.missions.name).forEach((r) => { missionNames[String(r[0])] = String(r[1] || ""); });
+  const items = proofRows_(semesterOf_(settings)).slice(-60).reverse().map((r) => {
+    const email = normalizeEmail(r[1]);
+    return {
+      name: names[email] || "(명단에서 빠진 학생)",
+      mine: email === student.email,
+      missionName: missionNames[String(r[2])] || String(r[2]),
+      kind: String(r[3]),
+      content: String(r[4] || ""),
+      fileId: String(r[5] || ""),
+      time: r[6] instanceof Date ? Utilities.formatDate(r[6], "Asia/Seoul", "MM.dd HH:mm") : String(r[6] || ""),
+    };
+  });
+  return { ok: true, items: items };
+}
+
+/** 인증 사진 한 장. 미션인증 기록에 있는 파일만 연다 (선생님 드라이브의 다른 파일은 열 수 없게). */
+function proofImage_(req) {
+  const fileId = String(req.fileId || "");
+  if (!fileId || !dataRows_(SHEETS.proofs.name).some((r) => String(r[5]) === fileId)) return failObj_("NOT_FOUND");
+  let blob;
+  try { blob = DriveApp.getFileById(fileId).getBlob(); } catch (e) { return failObj_("NOT_FOUND"); }
+  return { ok: true, dataUrl: `data:${blob.getContentType()};base64,${Utilities.base64Encode(blob.getBytes())}` };
+}
+
+/* ───────── 보석 ───────── */
+
+function myGemKeys_(email, settings) {
+  return drawRows_(semesterOf_(settings)).filter((r) => normalizeEmail(r[1]) === email).map((r) => String(r[2]));
+}
+
+function gems_(req, student, settings) {
+  const odds = gemOdds(settings);
+  return {
+    ok: true,
+    ready: Boolean(odds),
+    odds: odds || [],
+    cost: Number(settings["보석 뽑기 비용"]) || 0,
+    points: myPoints_(student.email, settings),
+    summary: gemSummary(odds, myGemKeys_(student.email, settings)),
+  };
+}
+
+/** 뽑기. 보석과 비용은 화면이 보낸 값을 쓰지 않고 서버에서 정한다. */
+function draw_(req, student, settings) {
+  const odds = gemOdds(settings);
+  if (!odds) return failObj_("GEMS_NOT_READY");
+  const cost = Number(settings["보석 뽑기 비용"]) || 0;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    if (myPoints_(student.email, settings).balance < cost) return failObj_("NOT_ENOUGH_POINTS");
+    const gem = pickGem(odds, random_());
+    sheet_(SHEETS.draws.name).appendRow([semesterOf_(settings), student.email, gem.key, gem.score, cost, new Date()]);
+    return {
+      ok: true,
+      gem: gem,
+      points: myPoints_(student.email, settings),
+      summary: gemSummary(odds, myGemKeys_(student.email, settings)),
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** 난수. 테스트에서 바꿔 끼울 수 있게 함수로 둔다. */
+function random_() {
+  return Math.random();
+}
+
 /* ───────── 도우미 ───────── */
+
+/** 제목 줄을 뺀 모든 줄. */
+function dataRows_(name) {
+  return sheet_(name).getDataRange().getValues().slice(1);
+}
 
 function fetchTokenInfo_(idToken) {
   if (!idToken) return null;
