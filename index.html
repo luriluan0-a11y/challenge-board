@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a3a5c">
+<title>챌린지보드</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <div class="eyebrow">취업 준비 챌린지보드</div>
+      <h1 id="dateTitle">오늘</h1>
+    </div>
+    <div class="wallet" title="지금까지 모은 포인트"><span class="coin">🪙</span><b id="earned">0</b><span>점</span></div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <main>
+    <section class="tab" id="tab-today" data-tab="today">
+      <div class="card progress-card">
+        <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+          <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="progress-text">
+          <div class="pct" id="pct">0%</div>
+          <div class="sub" id="doneText">9개 중 0개</div>
+        </div>
+        <div class="today-points">
+          <div class="label">오늘 받은 포인트</div>
+          <div class="value" id="todayPoints">0점</div>
+          <div class="stamp" id="stamp" hidden>🐾 오늘 도장 완료!</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>매일 항목</h2>
+        <ul class="items" id="items"></ul>
+      </div>
+
+      <div class="card">
+        <h2>한 줄 메모 <span class="hint">+5점</span></h2>
+        <label class="sr-only" for="memo">오늘의 한 줄 메모</label>
+        <input id="memo" class="memo" type="text" maxlength="200" placeholder="오늘 한 일, 느낀 점을 한 줄로" autocomplete="off">
+        <div class="memo-state" id="memoState"></div>
+      </div>
+    </section>
+
+    <section class="tab" id="tab-missions" data-tab="missions" hidden>
+      <div class="card soon"><div class="soon-emo">🎯</div><h2>미션</h2><p>4번째로 만들 기능이에요. 미션별 날짜 기록(내용 + 링크)과 보관함이 들어갈 자리예요.</p></div>
+    </section>
+    <section class="tab" id="tab-rewards" data-tab="rewards" hidden>
+      <div class="card soon"><div class="soon-emo">☕</div><h2>보상</h2><p>3번째로 만들 기능이에요. 모은 포인트로 라떼 한 잔, 게임 1시간, 디저트를 "구매"할 수 있어요.</p></div>
+    </section>
+    <section class="tab" id="tab-history" data-tab="history" hidden>
+      <div class="card soon"><div class="soon-emo">🐾</div><h2>기록</h2><p>2번째로 만들 기능이에요. 달력 도장, 연속 일수, 배지, 지난 메모가 들어갈 자리예요.</p></div>
+    </section>
+    <section class="tab" id="tab-settings" data-tab="settings" hidden>
+      <div class="card soon"><div class="soon-emo">⚙️</div><h2>설정</h2><p>5번째로 만들 기능이에요. 그때까지는 같은 브라우저(같은 기기)에서만 기록해 주세요. 백업 기능도 이때 생겨요.</p></div>
+    </section>
+  </main>
+
+  <nav class="tabs" aria-label="화면 이동">
+    <button type="button" data-go="today" aria-current="page"><span>✅</span>오늘</button>
+    <button type="button" data-go="missions"><span>🎯</span>미션</button>
+    <button type="button" data-go="rewards"><span>☕</span>보상</button>
+    <button type="button" data-go="history"><span>🐾</span>기록</button>
+    <button type="button" data-go="settings"><span>⚙️</span>설정</button>
+  </nav>
+</div>
+
+<div class="celebrate" id="celebrate" hidden aria-live="polite">
+  <div class="celebrate-box">
+    <div class="big">🐾</div>
+    <b>오늘 항목을 모두 해냈어요!</b>
+    <span>보너스 +<span id="bonusPts">30</span>점</span>
+  </div>
+</div>
+
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
